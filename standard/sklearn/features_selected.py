@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 ############################################
-# File Name: select_features.py
+# File Name: features_selected.py
 # Purpose:
 # Creation Date: 2017-07-31
-# Last Modified: 2017-08-02 16:54:55
+# Last Modified: 2017-08-08 14:06:13
 # Actor by: Suluo - sampson.suluo@gmail.com
 ############################################
 from __future__ import division
@@ -25,10 +25,12 @@ def select_features(train, test):
     # features
     y_train = train['Survived']
     # 人工
-    selected_features = ['Pclass', 'Sex', 'Age', 'Embarked', 'SibSp', 'Parch', 'Fare']
-    x_train = train[selected_features]
-    x_test = test[selected_features]
-    # x_train.drop(['row.names', 'name', 'survived'], axis=1)
+    # selected_features = ['Pclass', 'Sex', 'Age', 'Embarked', 'SibSp', 'Parch', 'Fare']
+    # x_train = train[selected_features]
+    # x_test = test[selected_features]
+    # x_columns = [x for x in train.columns if x not in ['row.names', 'name', 'survived']]
+    # x_train = train[x_columns]
+    x_train.drop(['row.names', 'name', 'survived'], axis=1)
 
     # 数据填充
     x_train['Embarked'].fillna('S', inplace=True)
@@ -36,29 +38,42 @@ def select_features(train, test):
     x_train['Age'].fillna(x_train['Age'].mean(), inplace=True)
     x_test['Age'].fillna(x_test['Age'].mean(), inplace=True)
     x_train['Fare'].fillna(x_train['Fare'].mean(), inplace=True)
-    x_test['Fare'].fillna(x_test['Fare'].mean(), inplace=True)
     #x_train = x_train.dropna(how='any')
 
-    # x_train.fillna('UNKNOWN', inplace=True)
+    x_train.fillna('UNKNOWN', inplace=True)
     # 决策树选择特征 : 前20%
     # for i in range(1, 100, 2): # 最佳性能特征筛选
-    # fs = feature_selection.SelectPrecentile(feature_selection.chi2, percentile=20)
-    # x_train_fs = fs.fit_transform(x_train, y_train)
+    fs = feature_selection.SelectPrecentile(feature_selection.chi2, percentile=20)
+    x_train_fs = fs.fit_transform(x_train, y_train)
     # scores = cross_val_score(model, x_train_fs, y_train, cv=5)
     # results = np.append(results, scores.mean())
     # opt = np.where(results == results.max())[0]
 
-    print x_train.info(), x_test.info(), y_train.value_counts()
-
     dict_vec = DictVectorizer(sparse=False)
     x_train = dict_vec.fit_transform(x_train.to_dict(orient='record'))
-    print "feature_names:", dict_vec.feature_names_
+    print dict_vec.feature_names_
     x_test = dict_vec.transform(x_test.to_dict(orient='record'))
+    # 标准化
+    ss = StandardScaler()
+    x_train = ss.fit_transform(x_train)
+    x_test = ss.transform(x_test)
 
     return x_train, y_train, x_test
 
+# 文本特征向量转化
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+# vec = CountVectorizer()
+# vec = TfidfVectorizer()
+# 去掉停用词
+vec = CountVectorizer(analyzer='word', stop_words='english')
+x_train = vec.fit_transform(x_train)
+x_test = vec.transform(x_test)
+print vec.get_feature_names()
 
 def main(argv):
+    train = pd.read_csv("../data/train.csv")
+    test = pd.read_csv("../data/test.csv")
+    select_features(train, test)
     pass
 
 if __name__ == "__main__":

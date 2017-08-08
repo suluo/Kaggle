@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 ############################################
-# File Name: base_model.py
+# File Name: model_selected.py
 # Creation Date: 2017-08-01
-# Last Modified: 2017-08-05 01:07:22
+# Last Modified: 2017-08-08 14:16:03
 # Actor by: Suluo - sampson.suluo@gmail.com
 # Purpose:
 # scikit-learn的主要模块和基本使用:http://blog.csdn.net/u013066730/article/details/54314136
@@ -22,15 +22,6 @@ import select_features
 
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 gbc = GradientBoostingClassifier(random_state=10)
-gbc_params = {"n_estimators": range(50, 1000, 50), # 默认100
-              "learning_rate": [0.05, 0.1, 0.25, 0.5, 1.0], #默认0.1
-              "max_features": range(7, 20, 2), #
-              "subsample": [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9], # 默认1，合适0.5~0.8
-              "max_depth": range(10, 100, 5),
-              "min_samples_split": range(100, 1900, 200),
-              "min_samples_leaf": range(60, 101, 10),
-              "alpha": [0.7, 0.8, 0.9], # 默认0.9
-              }
 # 回归
 gbr = GradientBoostingRegressor()
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, ExtraTreesRegressor
@@ -109,6 +100,7 @@ def model_quality(model, X_train, Y_train=None):
     #    sum(np.min(cdist(X, keans.cluster_centers_, 'euclidean'), axis=1))/X.shape[0]
     return cross_val_score(model, X_train, Y_train, cv=5).mean()
 
+
 from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
 def select_params(model, params, x_train, y_train):
@@ -119,12 +111,39 @@ def select_params(model, params, x_train, y_train):
     gs = GridSearchCV(model, params, scoring='roc_auc', n_jobs=-1, cv=5, verbose=2, refit=True)
     gs.fit(x_train, y_train)
     print gs.cv_results_
-    gs.grid_scores_, gs.best_params_, gs.best_score_
+    gs.grid_scores, gs.best_params_, gs.best_score_
     return gs
 
-#x_train, y_train, x_test = select_features.select_features()
-#print "gbdt_score:", model_quality(gbdt, x_train, y_train)
-#print "gbdt_score:", model_quality(gbdt, x_train, y_train)
+
+def select_model(x_train, y_train):
+    print "gbdt_score:", model_quality(gbdt, x_train, y_train)
+    print "rfc_score:", model_quality(rfc, x_train, y_train)
+    print "lr_score:", model_quality(lr, x_train, y_train)
+    print "svm_score:", model_quality(lsvc, x_train, y_train)
+
+
+def main(argv):
+    train = pd.read_csv("../data/train.csv")
+    test = pd.read_csv('../data/test.csv')
+    x_train, y_train, x_test = select_features.select_features(train, test)
+    select_model(x_train, y_train)
+    # gbdt
+    #print x_train.info(), x_test.info(), y_train.value_counts()
+    gbc_params = {
+        "n_estimators": range(50, 1000, 50), # 默认100
+        "learning_rate": [0.05, 0.1, 0.25, 0.5, 1.0], #默认0.1
+        "max_features": range(7, 20, 2), #
+        "subsample": [0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9], # 默认1，合适0.5~0.8
+        "max_depth": range(10, 100, 5),
+        "min_samples_split": range(100, 1900, 200),
+        "min_samples_leaf": range(60, 101, 10),
+        "alpha": [0.7, 0.8, 0.9], # 默认0.9
+    }
+    #gbdt_params = {
+    #    "subsample": [0.5, 0.6, 0.65, 0.7],
+    #               }
+    gs = select_params(gbdt, gbdt_params, x_train, y_train)
+    return 0
 
 def main(argv):
     pass
