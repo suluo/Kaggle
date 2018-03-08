@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+############################################
+# File Name: model_selected.py
+# Creation Date: 2017-08-01
+# Last Modified: 2017-08-16 18:16:24
+# Actor by: Suluo - sampson.suluo@gmail.com
+# Purpose:
+############################################
+from __future__ import division
+import logging
+import logging.handlers
+#import traceback
+import os
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
+import features_selected
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import GradientBoostingRegressor
+gbr = GradientBoostingRegressor()
+
+from sklearn.ensemble import ExtraTreesRegressor
+etr = ExtraTreesRegressor()
+from sklearn.linear_model import LogisticRegression, Ridge, Lasso
+lr = LogisticRegression()
+# from sklearn.preprocessing import PolynomialFeatures
+# poly2 = PolynomialFeatures(degree=2)
+# x_train_poly2.fit_transform(x_train)
+lasso = Lasso()
+lrrd = Ridge()
+from sklearn.svm import LinearSVC, SVC, SVR
+lsvc = LinearSVC()
+svc = SVC()
+
+from sklearn import metrics
+from sklearn.cross_validation import cross_val_score
+from sklearn.metrics import classification_report, r2_score, mean_squared_error, mean_absolute_error
+from sklearn.cross_validation import train_test_split
+# 聚类
+from sklearn.metrics import silhouette_score
+from scipy.spatial.distance import cdist
+
+def model_quality(model, X_train, Y_train=None):
+    return cross_val_score(model, X_train, Y_train, cv=5, scoring='r2').mean()
+
+from sklearn.grid_search import GridSearchCV
+from sklearn.pipeline import Pipeline
+def select_params(model, params, x_train, y_train):
+    # pipeline 简化系统搭建流程
+    # clf = Pipeline([('vect', TfidfVectorizer(stop_words='english', analyzer='word')), ('svc', SVC())])
+    # gs = GridSearchCV(clf, params, verbose=2, refit=True, cv=3)
+    # n_jobs = -1全部cpu多线程，
+    gs = GridSearchCV(model, params, scoring='r2', n_jobs=-1, cv=5, verbose=1, refit=True)
+    gs.fit(x_train, y_train)
+    # print gs.grid_scores_
+    print gs.best_score_, gs.best_params_
+    return gs
+
+
+def select_model(x_train, y_train):
+    print "gbr_score:", model_quality(gbr, x_train, y_train)
+    print "rtc_score:", model_quality(etr, x_train, y_train)
+    print "lr_score:", model_quality(lrrd, x_train, y_train)
+    print "svm_score:", model_quality(lsvc, x_train, y_train)
+
+
+def main(argv):
+    train = pd.read_csv("../data/train.csv")
+    test = pd.read_csv('../data/test.csv')
+    x_train, y_train, x_test = features_selected.select_features(train, test)
+    # select_model(x_train, y_train)
+    # gbdt
+    #print x_train.info(), x_test.info(), y_train.value_counts()
+    gbdt_params = {
+        "n_estimators": range(200, 600, 100),
+        "learning_rate": [0.1, 0.2, 0.25, 0.3, 0.5],
+        "max_features": range(35, 44),
+        "subsample": [0.5, 0.55, 0.6, 0.65, 0.7],
+        "max_depth": range(2, 6)
+                   }
+    gbdt_params = {
+        "max_features": range(35, 44),
+                   }
+    best_params = {"max_depth":3, "learning_rate": 0.3, "subsample": 0.65, "n_estimators": 500}
+    gs = select_params(gbr, gbdt_params, x_train, y_train)
+    return 0
+
+
+if __name__ == "__main__":
+    main(sys.argv)
+
+
