@@ -4,7 +4,7 @@
 # File Name    : train.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-12 09:26:34
+# Last Modified: 2018-03-13 20:00:43
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -12,6 +12,7 @@ from __future__ import division
 import argparse
 import torch
 from torch import nn, optim
+from torch.autograd import Variable
 from tqdm import tqdm
 import random
 import os
@@ -29,22 +30,24 @@ dataset = dataset()
 
 
 def train():
-    train_data, dev_data, word_to_ix, label_to_ix = \
-        dataset.load_train()
+    train_loader, dev_loader = \
+        dataset.load_train(batch_size=16)
+    word_vocab, label_vocab = \
+        dataset.load_vocab()
     model = LSTM(embedding_dim=150, hidden_dim=150,
-                 vocab_size=len(word_to_ix),
-                 label_size=len(label_to_ix))
+                 vocab_size=len(word_vocab),
+                 label_size=len(label_vocab))
     loss = nn.NLLLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     # optimizer = optim.SGD(model.parameters(), lr=le-2)
 
     best_dev_acc = 0.0
     for i in range(10):
-        random.shuffle(train_data)
+        random.shuffle(train_loader)
         print('epoch: %d start...' % i)
-        train_epoch(model, train_data, loss, optimizer, word_to_ix, label_to_ix, i)
+        train_epoch(model, train_loader, loss, optimizer, i)
         #logger.info('now best dev acc:', best_dev_acc)
-        dev_acc = evaluate(model, dev_data, loss, word_to_ix, label_to_ix, 'dev')
+        dev_acc = evaluate(model, dev_loader, loss)
         # test_acc = evaluate(model, test_data, loss, word_to_ix, label_to_ix, 'test')
         if dev_acc > best_dev_acc:
             best_dev_acc = dev_acc
@@ -55,67 +58,55 @@ def train():
         print('now best dev acc:', best_dev_acc)
 
 
-def get_accuracy(truth, pred):
-     assert len(truth) == len(pred)
-     right = 0
-     for i in range(len(truth)):
-         if truth[i] == pred[i]:
-             right += 1.0
-     return right/len(truth)
-
-
-def evaluate(model, data, loss_function, word_to_ix, label_to_ix, name ='dev'):
+def evaluate(model, loader, loss):
     model.eval()
-    avg_loss = 0.0
-    truth_res = []
-    pred_res = []
+    total, correct = 0, 0.0
 
-    for sent, label in tqdm(data):
-        truth_res.append(label_to_ix[label])
-        # detaching it from its history on the last instance.
-        model.hidden = model.init_hidden()
-        sent = dataset.prepare_sequence(sent, word_to_ix)
-        label = dataset.prepare_label(label, label_to_ix)
-        pred = model(sent)
-        pred_label = pred.data.max(1)[1].numpy()
-        pred_res.append(pred_label)
+    for i, (sents, labels) in tqdm(loader):
+        sents = Variable(sents)
+        labels = Variable(labels)
+        outputs = model(sents)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum()
         # model.zero_grad() # should I keep this when I am evaluating the model?
-        loss = loss_function(pred, label)
-        avg_loss += loss.data[0]
-    avg_loss /= len(data)
-    acc = get_accuracy(truth_res, pred_res)
-    print(name + ' avg_loss:%g train acc:%g' % (avg_loss, acc))
-    return acc
+    print('dev acc: %s' % correct/total)
+    return correct/total
 
+def test(model, loader, word_to_ix):
+    model.eval()
 
-def train_epoch(model, train_data, loss_function, optimizer, word_to_ix, label_to_ix, i):
-    model.train()
-    avg_loss = 0.0
-    count = 0
-    truth_res = []
-    pred_res = []
-    batch_sent = []
-
-    for sent, label in tqdm(train_data):
-        truth_res.append(label_to_ix[label])
+    labels = []
+    for sent in tqdm(loader):
         # detaching it from its history on the last instance.
-        model.hidden = model.init_hidden()
         sent = dataset.prepare_sequence(sent, word_to_ix)
-        label = dataset.prepare_label(label, label_to_ix)
-        pred = model(sent)
-        pred_label = pred.data.max(1)[1].numpy()
-        pred_res.append(pred_label)
-        model.zero_grad()
-        loss = loss_function(pred, label)
-        avg_loss += loss.data[0]
-        count += 1
-        if count % 1000 == 0:
-            print('epoch: %d iterations: %d loss :%g' % (i, count, loss.data[0]))
+        sent = Variable(sent)
+        outputs = model(sent)
+        _, label = torch.max(outputs.data, 1)
+        labels.append(label)
+    return labels
 
+def train_epoch(model, train_loader, loss_function, optimizer, epoch):
+    model.train()
+    count = 0
+
+    for step, (sents, labels) in tqdm(train_loader):
+        sents = Variable(sents)
+        labels = Variable(labels)
+        # detaching it from its history on the last instance.
+        model.batch_size = len(labels.size(0))
+        model.hidden = model.init_hidden()
+        # forward + backward + optimize
+        optimizer.zero_grad()
+        outputs = model(sents)
+        loss = loss_function(outputs, labels)
         loss.backward()
         optimizer.step()
-    avg_loss /= len(train_data)
-    print('epoch: %d done! \n train avg_loss:%g , acc:%g'%(i, avg_loss, get_accuracy(truth_res,pred_res)))
+
+        count += 1
+        if count % 1000 == 0:
+            print('epoch: %d iterations: %d loss :%g' % (epoch, count*model.batch_size, loss.data[0]))
+
 
 
 
