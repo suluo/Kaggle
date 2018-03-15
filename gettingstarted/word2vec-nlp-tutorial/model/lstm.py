@@ -4,15 +4,16 @@
 # File Name    : lstm.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-11 13:02:52
+# Last Modified: 2018-03-13 20:09:51
 # Descption    :
 # Version      : Python 3.6
 ############################################
 from __future__ import division
 import argparse
 import torch
+from torch import nn
 import torch.nn.functional as F
-from torch import autograd, nn
+from torch.autograd import Variable
 import logging
 import logging.config
 # logging.config.fileConfig('../conf/logging.conf')
@@ -24,8 +25,9 @@ class LSTM(nn.Module):
         super(LSTM, self).__init__()
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
+        self.num_layers = 1
         self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, self.num_layers)
         self.hidden2label = nn.Linear(hidden_dim, label_size)
         self.hidden = self.init_hidden()
 
@@ -33,8 +35,8 @@ class LSTM(nn.Module):
         # the first is the hidden h
         # the second is the cell  c
         return (
-            autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)),
-            autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim))
+            Variable(torch.zeros(self.num_layers, self.batch_size, self.hidden_dim)),
+            Variable(torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
         )
 
     def forward(self, sentence):
