@@ -4,7 +4,7 @@
 # File Name    : data_loader_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-14
-# Last Modified: 2018-03-15 13:34:02
+# Last Modified: 2018-03-15 18:38:56
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -94,7 +94,7 @@ class MR(data.Dataset):
         return data
 
     @classmethod
-    def splits(cls, text_field, label_field, filename, char_data=True, train=True, dev_ratio=.1, shuffle=True, path='./data/', **kwargs):
+    def splits(cls, text_field, label_field, filename, char_data=True, dev_ratio=.1, shuffle=True, path='./data/', **kwargs):
         """Create dataset objects for splits of the MR dataset.
         Arguments:
             text_field: The field that will be used for the sentence.
@@ -114,20 +114,20 @@ class MR(data.Dataset):
             print("shuffle data examples......")
             random.shuffle(examples)
 
-        if train:
-            dev_index = -1 * int(dev_ratio*len(examples))
-            return (cls(text_field, label_field, examples=examples[:dev_index]),
-                    cls(text_field, label_field, examples=examples[dev_index:]))
+        dev_index = -1 * int(dev_ratio*len(examples))
+        return (cls(text_field, label_field, examples=examples[:dev_index]),
+                cls(text_field, label_field, examples=examples[dev_index:]))
 
 
 def load_mr(text_field, label_field, batch_size, **kwargs):
         train_data, dev_data = MR.splits(text_field, label_field, filename='labeledTrainData.tsv')
-        print("len(train_data) {} ".format(len(train_data)))
+        print("len(train_data) {}, len(dev_data): {} ".format(len(train_data), len(dev_data)))
         text_field.build_vocab(train_data.text, dev_data.text)
         label_field.build_vocab(train_data.label, dev_data.label)
         train_iter, dev_iter = data.Iterator.splits(
             (train_data, dev_data),
-            batch_sizes=(batch_size, batch_size),
+            batch_sizes=(batch_size, len(dev_data)),
+            sort_key=lambda x: len(x.text),
             repeat=False, device=-1,
             **kwargs
         )

@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-15 13:35:13
+# Last Modified: 2018-03-22 11:58:42
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -36,6 +36,14 @@ def tokenizer(text):
     return [tok.text for tok in spacy_en.tokenizer(text)]
 
 
+def load_model_state(model, model_path):
+    if os.path.exists(model_path):
+        print ("loading net_params ....")
+        model.load_state_dict(torch.load(model_path))
+        print ("load net_params done !!!")
+    return model
+
+
 def train():
     # text_field = data.Field(sequential=True, tokenize=tokenizer, lower=True)
     text_field = data.Field(sequential=True, lower=True)
@@ -47,6 +55,8 @@ def train():
     model = LSTM(embedding_dim=100, hidden_dim=50,
                  vocab_size=len(text_field.vocab),
                  label_size=2)
+
+    model = load_model_state(model, "./data/net_params.pkl")
     # model.word_embeddings.weight.data = text_field.vocab.vectors
     if torch.cuda.is_available():
         model = model.cuda()
@@ -58,49 +68,23 @@ def train():
     best_dev_acc = 0.0
     for i in range(10):
         print('epoch: %d start...' % i)
-        train_epoch(model, train_iter, loss, optimizer, text_field, label_field, i)
-        # logger.info('now best dev acc:', best_dev_acc)
-        dev_acc = evaluate(model, dev_iter, loss, 'dev')
+        train_epoch(model, train_iter, loss, optimizer, epoch=i)
+        dev_acc = train_epoch(model, dev_iter, loss, optimizer, False)
         # test_acc = evaluate(model, test_data, loss, word_to_ix, label_to_ix, 'test')
         if dev_acc > best_dev_acc:
             best_dev_acc = dev_acc
-            # os.system('rm mr_best_model_acc_*.model')
-            print('New Best Dev!!!')
-            torch.save(model.state_dict(),
-                       './data/state'+str(int(best_dev_acc*1000))+'.model')
+            print('New Best Dev - {} !!!'.format(best_dev_acc))
+            torch.save(model.state_dict(), "./data/net_params.pkl")
         print('now best dev acc:', best_dev_acc)
+        # logger.info('now best dev acc:', best_dev_acc)
 
 
-def evaluate(model, eval_iter, loss_function, name='dev'):
-    model.eval()
-    avg_loss, corrects = 0.0, 0.0
-
-    for batch in tqdm(eval_iter):
-        sents, labels = batch.text, batch.label.data.sub_(1)
-        # feature, target = Variable(sents), Variable(labels)
-        feature, target = sents, Variable(labels)
-        if torch.cuda.is_available():
-            feature, target = feature.cuda(), target.cuda()
-
-        model.batch_size = batch.batch_size
-        model.hidden = model.init_hidden()
-
-        logit = model(feature)
-        # model.zero_grad() # should I keep this when I am evaluating the model?
-        loss = loss_function(logit, target)
-
-        corrects += (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
-        avg_loss += loss.data[0]
-    eval_size = len(eval_iter.dataset)
-    avg_loss /= eval_size
-    print('eval avg_loss: {} , acc: {}'.format(avg_loss/eval_size, corrects/eval_size))
-    return corrects/eval_size
-
-
-def train_epoch(model, train_iter, loss_function, optimizer, text_field, label_field, i):
-    model.train()
-    avg_loss = 0.0
-    count = 0
+def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0):
+    if is_train:
+        model.train()
+    else:
+        model.eval()
+    avg_loss, corrects, count = 0.0, 0.0, 0
 
     for batch in tqdm(train_iter):
         sents, labels = batch.text, batch.label.data.sub_(1)
@@ -112,23 +96,28 @@ def train_epoch(model, train_iter, loss_function, optimizer, text_field, label_f
         model.batch_size = batch.batch_size
         model.hidden = model.init_hidden()
 
-        optimizer.zero_grad()
-        model.zero_grad()
         logit = model(feature)
-        # model.zero_grad() # should I keep this when I am evaluating the model?
-        loss = loss_function(logit, target)
-        loss.backward()
-        optimizer.step()
 
-        corrects = (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
-        accuracy = float(corrects)/batch.batch_size
+        if is_train:
+            # model.zero_grad() # should I keep this when I am evaluating the model?
+            loss = loss_func(logit, target)
+
+            optimizer.zero_grad()
+            model.zero_grad()
+            loss.backward()
+            optimizer.step()
+            count += 1
+            if count % 200 == 0:
+                print('train-epoch: {} iterations: {} loss: {}'.format(epoch, count*model.batch_size, loss.data[0]))
+
+        corrects += (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
         avg_loss += loss.data[0]
-        count += 1
-        if count % 200 == 0:
-            print('epoch: {} iterations: {} loss: {}'.format(i, count*model.batch_size, loss.data[0]))
     train_size = len(train_iter.dataset)
     avg_loss /= train_size
-    print('epoch: {} done! train avg_loss: {}, acc: {}'.format(i, avg_loss, accuracy))
+    accuracy = float(corrects)/train_size
+    print('Is_train: {} epoch: {} avg_loss: {}, acc: {}'.format(is_train, epoch, avg_loss, accuracy))
+    return accuracy
+
 
 
 def main(num):
