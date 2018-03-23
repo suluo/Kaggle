@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-23 11:42:00
+# Last Modified: 2018-03-23 12:51:38
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -117,7 +117,7 @@ def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0)
             count += 1
             if count % 200 == 0:
                 # print('train-epoch: {} iterations: {} loss: {}'.format(epoch, count*model.batch_size, loss.data[0]))
-                logger.info('train-epoch: %s iterations: %s loss: %s acc'
+                logger.info('train-epoch: %s iterations: %s loss: %s acc: %s'
                             % (epoch, count*model.batch_size, loss.data[0], float(batch_correct)/model.batch_size))
 
     train_size = len(train_iter.dataset)
@@ -126,7 +126,6 @@ def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0)
     logger.info('Is_train: %s epoch: %s avg_loss: %s, acc: %s'
                 % (is_train, epoch, avg_loss, accuracy))
     return accuracy
-
 
 
 def main(num):
