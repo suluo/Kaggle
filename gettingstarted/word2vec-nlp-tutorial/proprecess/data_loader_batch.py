@@ -4,7 +4,7 @@
 # File Name    : data_loader_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-14
-# Last Modified: 2018-03-15 18:38:56
+# Last Modified: 2018-03-22 15:52:59
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -14,7 +14,7 @@ import os
 import sys
 import logging
 import logging.config
-# logging.config.fileConfig('../conf/logging.conf')
+# logging.config.fileConfig('./conf/logging.conf')
 # logger = logging.getLogger(__file__)
 import re
 import torch

@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-22 11:58:42
+# Last Modified: 2018-03-23 11:42:00
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -17,6 +17,7 @@ from torchtext import data
 from torch.autograd import Variable
 import random
 import os
+import time
 import logging
 import logging.config
 torch.set_num_threads(8)
@@ -26,8 +27,9 @@ from model.lstm import LSTM
 # from proprecess import data_loader
 import proprecess.data_loader_batch as data_loader
 
-# logging.config.fileConfig('../conf/logging.conf')
-# logger = logging.getLogger(__file__)
+logging.config.fileConfig('./conf/logging.conf',
+                          disable_existing_loggers=False)
+logger = logging.getLogger(__file__)
 import spacy
 spacy_en = spacy.load("en")
 
@@ -38,15 +40,16 @@ def tokenizer(text):
 
 def load_model_state(model, model_path):
     if os.path.exists(model_path):
-        print ("loading net_params ....")
+        t0 = time.clock()
+        logger.info("loading net_params ...")
         model.load_state_dict(torch.load(model_path))
-        print ("load net_params done !!!")
+        logger.info('load net_params takes %s' % (time.clock()-t0))
     return model
 
 
 def train():
-    # text_field = data.Field(sequential=True, tokenize=tokenizer, lower=True)
-    text_field = data.Field(sequential=True, lower=True)
+    text_field = data.Field(sequential=True, tokenize=tokenizer, lower=True)
+    # text_field = data.Field(sequential=True, lower=True)
     label_field = data.Field(sequential=False)
     # label_field = data.Field(sequential=False, use_vocab=False)
     train_iter, dev_iter = data_loader.load_mr(
@@ -57,6 +60,7 @@ def train():
                  label_size=2)
 
     model = load_model_state(model, "./data/net_params.pkl")
+    # model = load_model_state(model, "./data/state510.model")
     # model.word_embeddings.weight.data = text_field.vocab.vectors
     if torch.cuda.is_available():
         model = model.cuda()
@@ -67,7 +71,8 @@ def train():
 
     best_dev_acc = 0.0
     for i in range(10):
-        print('epoch: %d start...' % i)
+        t0 = time.time()
+        logger.info('Epoch : %s start ...' % i)
         train_epoch(model, train_iter, loss, optimizer, epoch=i)
         dev_acc = train_epoch(model, dev_iter, loss, optimizer, False)
         # test_acc = evaluate(model, test_data, loss, word_to_ix, label_to_ix, 'test')
@@ -75,8 +80,8 @@ def train():
             best_dev_acc = dev_acc
             print('New Best Dev - {} !!!'.format(best_dev_acc))
             torch.save(model.state_dict(), "./data/net_params.pkl")
-        print('now best dev acc:', best_dev_acc)
-        # logger.info('now best dev acc:', best_dev_acc)
+        logger.info('epoch %s taks %s, now best dev acc %s'
+                    % (i, time.time()-t0, best_dev_acc))
 
 
 def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0):
@@ -97,25 +102,29 @@ def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0)
         model.hidden = model.init_hidden()
 
         logit = model(feature)
+        loss = loss_func(logit, target)
 
+        batch_correct = (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
+        corrects += (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
+        avg_loss += loss.data[0]
         if is_train:
             # model.zero_grad() # should I keep this when I am evaluating the model?
-            loss = loss_func(logit, target)
-
             optimizer.zero_grad()
             model.zero_grad()
             loss.backward()
             optimizer.step()
+
             count += 1
             if count % 200 == 0:
-                print('train-epoch: {} iterations: {} loss: {}'.format(epoch, count*model.batch_size, loss.data[0]))
+                # print('train-epoch: {} iterations: {} loss: {}'.format(epoch, count*model.batch_size, loss.data[0]))
+                logger.info('train-epoch: %s iterations: %s loss: %s acc'
+                            % (epoch, count*model.batch_size, loss.data[0], float(batch_correct)/model.batch_size))
 
-        corrects += (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
-        avg_loss += loss.data[0]
     train_size = len(train_iter.dataset)
     avg_loss /= train_size
     accuracy = float(corrects)/train_size
-    print('Is_train: {} epoch: {} avg_loss: {}, acc: {}'.format(is_train, epoch, avg_loss, accuracy))
+    logger.info('Is_train: %s epoch: %s avg_loss: %s, acc: %s'
+                % (is_train, epoch, avg_loss, accuracy))
     return accuracy
 
 
