@@ -4,7 +4,7 @@
 # File Name    : data_loader_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-14
-# Last Modified: 2018-03-22 15:52:59
+# Last Modified: 2018-03-23 12:59:24
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -94,7 +94,7 @@ class MR(data.Dataset):
         return data
 
     @classmethod
-    def splits(cls, text_field, label_field, filename, char_data=True, dev_ratio=.1, shuffle=True, path='./data/', **kwargs):
+    def splits(cls, text_field, label_field, filename, char_data=False, dev_ratio=.1, shuffle=True, path='./data/', **kwargs):
         """Create dataset objects for splits of the MR dataset.
         Arguments:
             text_field: The field that will be used for the sentence.

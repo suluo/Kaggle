@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-23 12:51:38
+# Last Modified: 2018-03-26 16:14:21
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -43,7 +43,7 @@ def load_model_state(model, model_path):
         t0 = time.clock()
         logger.info("loading net_params ...")
         model.load_state_dict(torch.load(model_path))
-        logger.info('load net_params takes %s' % (time.clock()-t0))
+        logger.info('load net_params taks %s' % (time.clock()-t0))
     return model
 
 
@@ -80,8 +80,8 @@ def train():
             best_dev_acc = dev_acc
             print('New Best Dev - {} !!!'.format(best_dev_acc))
             torch.save(model.state_dict(), "./data/net_params.pkl")
-        logger.info('epoch %s taks %s, now best dev acc %s'
-                    % (i, time.time()-t0, best_dev_acc))
+        logger.info('epoch %s taks %s h, now best dev acc %s'
+                    % (i, (time.time()-t0)/3600, best_dev_acc))
 
 
 def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0):
@@ -109,7 +109,7 @@ def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0)
         avg_loss += loss.data[0]
         if is_train:
             # model.zero_grad() # should I keep this when I am evaluating the model?
-            optimizer.zero_grad()
+            # optimizer.zero_grad()
             model.zero_grad()
             loss.backward()
             optimizer.step()
