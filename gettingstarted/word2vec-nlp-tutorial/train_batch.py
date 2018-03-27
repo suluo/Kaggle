@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-26 20:04:14
+# Last Modified: 2018-03-27 20:47:55
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -61,18 +61,18 @@ def train():
 
     loss = nn.NLLLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    # optimizer = optim.SGD(model.parameters(), lr=le-2)
+    # optimizer = optim.SGD(model.parameters(), lr=1e-2)
     if torch.cuda.is_available():
         model = model.cuda()
 
     try:
         model = load_model_state(model, "./data/net_params.pkl")
-        # model = load_model_state(model, "./data/state510.model")
+        # model.word_embeddings.weight.data.copy_(text_field.vocab.vectors)
         # model.word_embeddings.weight.data = text_field.vocab.vectors
-        best_dev_acc = train_epoch(model, dev_iter, loss, optimizer, False)
-    except Exception, e:
+    except Exception as e:
         logger.error("load model fail: %s" % e, exc_info=True)
-        best_dev_acc = 0.0
+    else:
+        best_dev_acc = train_epoch(model, dev_iter, loss, optimizer, False)
 
     for i in range(10):
         t0 = time.time()

@@ -4,7 +4,7 @@
 # File Name    : data_loader_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-14
-# Last Modified: 2018-03-23 12:59:24
+# Last Modified: 2018-03-27 17:19:32
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -123,6 +123,7 @@ def load_mr(text_field, label_field, batch_size, **kwargs):
         train_data, dev_data = MR.splits(text_field, label_field, filename='labeledTrainData.tsv')
         print("len(train_data) {}, len(dev_data): {} ".format(len(train_data), len(dev_data)))
         text_field.build_vocab(train_data.text, dev_data.text)
+        # text_field.build_vocab(train_data, vectors="glove.6B.100d")
         label_field.build_vocab(train_data.label, dev_data.label)
         train_iter, dev_iter = data.Iterator.splits(
             (train_data, dev_data),
