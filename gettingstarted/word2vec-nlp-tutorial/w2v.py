@@ -4,7 +4,7 @@
 # File Name    : w2v.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-09
-# Last Modified: 2018-03-27 20:54:28
+# Last Modified: 2018-03-28 15:13:08
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -45,7 +45,7 @@ def train():
         for tsv in ['labeledTrainData.tsv', 'unlabeledTrainData.tsv', 'testData.tsv']:
             logger.info("loading %s ...." % tsv)
             load_tsv('./data/' + tsv, filename)
-    sentences = word2vec.Text8Corpus(filename)
+    sents = word2vec.Text8Corpus(filename)
     t1 = time.time()
     logger.info("load text taks %s" % (time.time()-t0))
 
@@ -55,14 +55,18 @@ def train():
         min_word_count, context = 20, 10
         downsampling = 1e-3
         model = word2vec.Word2Vec(
-            sentences, workers=num_workers,
+            sents, workers=num_workers,
             size=num_features, min_count=min_word_count,
             window=context, sample=downsampling
         )
         model.init_sims(replace=True)
     else:
         model = Word2Vec.load(model_path)
-        model.train(sentences)
+        # model.save_word2vec_foramt(output_vec, binary=False)
+        model.build_vocab(sents, update=True)
+        model.train(sents, total_examples=model.corpus_count, epochs=model.iter)
+    # 生成的词典
+    # model.vocab
     logger.info('w2v train taks %s' % (time.time()-t1))
     model.save('./data/model.w2v')
 

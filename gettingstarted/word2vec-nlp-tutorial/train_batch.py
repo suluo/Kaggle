@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-27 20:47:55
+# Last Modified: 2018-03-27 21:07:04
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -36,6 +36,27 @@ spacy_en = spacy.load("en")
 
 def tokenizer(text):
     return [tok.text for tok in spacy_en.tokenizer(text)]
+
+
+# load word embedding
+def load_my_vecs(path, vocab, freqs):
+    word_vecs = {}
+    with open(path, encoding="utf-8") as f:
+        count  = 0
+        lines = f.readlines()[1:]
+        for line in lines:
+            values = line.split(" ")
+            word = values[0]
+            # word = word.lower()
+            count += 1
+            if word in vocab:  # whether to judge if in vocab
+                vector = []
+                for count, val in enumerate(values):
+                    if count == 0:
+                        continue
+                    vector.append(float(val))
+                word_vecs[word] = vector
+    return word_vecs
 
 
 def load_model_state(model, model_path):
