@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-27 21:07:04
+# Last Modified: 2018-03-29 18:01:47
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -42,7 +42,7 @@ def tokenizer(text):
 def load_my_vecs(path, vocab, freqs):
     word_vecs = {}
     with open(path, encoding="utf-8") as f:
-        count  = 0
+        count = 0
         lines = f.readlines()[1:]
         for line in lines:
             values = line.split(" ")
