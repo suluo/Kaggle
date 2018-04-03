@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-29 18:01:47
+# Last Modified: 2018-04-03 12:10:28
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -151,6 +151,18 @@ def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0)
     logger.info('Is_train: %s epoch: %s avg_loss: %s, acc: %s'
                 % (is_train, epoch, avg_loss, accuracy))
     return accuracy
+
+
+def predict(model, sent):
+    to_ix = {}
+    model = model.eval()
+    def prepare_sequence(seq, to_ix):
+        idxs = [to_ix[w] for w in seq]
+        tensor = torch.LongTensor(idxs)
+        return Variable(tensor)
+    sentence = prepare_sequence(sent, to_ix)
+    logit = model(sentence)
+    return torch.max(logit, 1)[1].data
 
 
 def main(num):

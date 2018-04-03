@@ -4,7 +4,7 @@
 # File Name    : lstm.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-03-29 18:01:14
+# Last Modified: 2018-03-29 18:07:13
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -27,7 +27,7 @@ class LSTM(nn.Module):
         self.batch_size = batch_size
         self.num_layers = 1
         self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim/2, self.num_layers, bidirectional=True)
+        self.lstm = nn.LSTM(embedding_dim, int(hidden_dim/2), self.num_layers, bidirectional=True)
         self.hidden2label = nn.Linear(hidden_dim, label_size)
         self.hidden = self.init_hidden()
 
@@ -35,8 +35,8 @@ class LSTM(nn.Module):
         # the first is the hidden h
         # the second is the cell  c
         return (
-            Variable(torch.zeros(self.num_layers, self.batch_size, self.hidden_dim/2)),
-            Variable(torch.zeros(self.num_layers, self.batch_size, self.hidden_dim/2))
+            Variable(torch.zeros(self.num_layers, self.batch_size, int(self.hidden_dim/2))),
+            Variable(torch.zeros(self.num_layers, self.batch_size, int(self.hidden_dim/2)))
         )
 
     def forward(self, sentence):
