@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 ############################################
-# File Name    : lstm.py
+# File Name    : bilstm.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-04-03 19:04:47
+# Last Modified: 2018-04-03 19:10:58
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -29,9 +29,10 @@ class LSTM(nn.Module):
         V = args.embed_num
         D = args.embed_dim
         C = args.class_num
+        dropout = args.dropout if "dropout" in args else 0.5
 
         self.word_embeddings = nn.Embedding(V, D)
-        self.lstm = nn.LSTM(D, self.hidden_dim, self.num_layers)
+        self.lstm = nn.LSTM(D, self.hidden_dim//2, num_layers=self.num_layers, dropout=dropout, bidirectional=True, bias=False)
         self.hidden2label = nn.Linear(self.hidden_dim, C)
         self.hidden = self.init_hidden()
 
@@ -39,8 +40,8 @@ class LSTM(nn.Module):
         # the first is the hidden h
         # the second is the cell  c
         return (
-            Variable(torch.zeros(self.num_layers, self.batch_size, self.hidden_dim)),
-            Variable(torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
+            Variable(torch.zeros(2*self.num_layers, self.batch_size, self.hidden_dim//2)),
+            Variable(torch.zeros(2*self.num_layers, self.batch_size, self.hidden_dim//2))
         )
 
     def forward(self, sentence):

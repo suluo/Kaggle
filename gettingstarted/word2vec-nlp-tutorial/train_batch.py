@@ -4,7 +4,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-04-03 12:10:28
+# Last Modified: 2018-04-03 18:01:29
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -13,19 +13,14 @@ import argparse
 import torch
 from torch import nn, optim
 from tqdm import tqdm
-from torchtext import data
 from torch.autograd import Variable
 import random
-import os
 import time
 import logging
 import logging.config
 torch.set_num_threads(8)
 torch.manual_seed(1)
 random.seed(1)
-from model.lstm import LSTM
-# from proprecess import data_loader
-import proprecess.data_loader_batch as data_loader
 
 logging.config.fileConfig('./conf/logging.conf',
                           disable_existing_loggers=False)
@@ -59,48 +54,15 @@ def load_my_vecs(path, vocab, freqs):
     return word_vecs
 
 
-def load_model_state(model, model_path):
-    if os.path.exists(model_path):
-        t0 = time.clock()
-        logger.info("loading net_params ...")
-        model.load_state_dict(torch.load(model_path))
-        logger.info('load net_params taks %s' % (time.clock()-t0))
-    return model
-
-
-def train():
-    text_field = data.Field(sequential=True, tokenize=tokenizer, lower=True)
-    # text_field = data.Field(sequential=True, lower=True)
-    label_field = data.Field(sequential=False)
-    # label_field = data.Field(sequential=False, use_vocab=False)
-    train_iter, dev_iter = data_loader.load_mr(
-        text_field, label_field, batch_size=16)
-    # text_field.vocab.load_vectors(wv_type='glove.6B', wv_dim=100)
-    model = LSTM(embedding_dim=100, hidden_dim=50,
-                 vocab_size=len(text_field.vocab),
-                 label_size=2)
-
-    loss = nn.NLLLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    # optimizer = optim.SGD(model.parameters(), lr=1e-2)
+def train(model, train_iter, dev_iter, best_dev_acc=0.0):
     if torch.cuda.is_available():
         model = model.cuda()
-
-    try:
-        model = load_model_state(model, "./data/net_params.pkl")
-        # model.word_embeddings.weight.data.copy_(text_field.vocab.vectors)
-        # model.word_embeddings.weight.data = text_field.vocab.vectors
-    except Exception as e:
-        logger.error("load model fail: %s" % e, exc_info=True)
-    else:
-        best_dev_acc = train_epoch(model, dev_iter, loss, optimizer, False)
 
     for i in range(10):
         t0 = time.time()
         logger.info('Epoch : %s start ...' % i)
-        train_epoch(model, train_iter, loss, optimizer, epoch=i)
-        dev_acc = train_epoch(model, dev_iter, loss, optimizer, False)
-        # test_acc = evaluate(model, test_data, loss, word_to_ix, label_to_ix, 'test')
+        train_epoch(model, train_iter, epoch=i)
+        dev_acc = train_epoch(model, dev_iter, False)
         if dev_acc > best_dev_acc:
             best_dev_acc = dev_acc
             print('New Best Dev - {} !!!'.format(best_dev_acc))
@@ -109,7 +71,11 @@ def train():
                     % (i, (time.time()-t0)/3600, best_dev_acc))
 
 
-def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0):
+def train_epoch(model, train_iter, is_train=True, epoch=0):
+    loss_func = nn.NLLLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    # optimizer = optim.SGD(model.parameters(), lr=1e-2)
+
     if is_train:
         model.train()
     else:
@@ -133,7 +99,8 @@ def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0)
         corrects += (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
         avg_loss += loss.data[0]
         if is_train:
-            # model.zero_grad() # should I keep this when I am evaluating the model?
+            # should I keep this when I am evaluating the model?
+            # model.zero_grad()
             # optimizer.zero_grad()
             model.zero_grad()
             loss.backward()
@@ -153,20 +120,24 @@ def train_epoch(model, train_iter, loss_func, optimizer, is_train=True, epoch=0)
     return accuracy
 
 
-def predict(model, sent):
-    to_ix = {}
-    model = model.eval()
-    def prepare_sequence(seq, to_ix):
-        idxs = [to_ix[w] for w in seq]
-        tensor = torch.LongTensor(idxs)
-        return Variable(tensor)
-    sentence = prepare_sequence(sent, to_ix)
-    logit = model(sentence)
-    return torch.max(logit, 1)[1].data
+def predict(text, model, text_field, label_feild, cuda_flag):
+    assert isinstance(text, str)
+    model.eval()
+    # text = text_field.tokenize(text)
+    text = text_field.preprocess(text)
+    text = [[text_field.vocab.stoi[x] for x in text]]
+    x = text_field.tensor_type(text)
+    x = Variable(x, volatile=True)
+    if cuda_flag:
+        x = x.cuda()
+    print(x)
+    output = model(x)
+    _, predicted = torch.max(output, 1)
+    # return label_feild.vocab.itos[predicted.data[0][0]+1]
+    return label_feild.vocab.itos[predicted.data[0]+1]
 
 
 def main(num):
-    train()
     return num
 
 
