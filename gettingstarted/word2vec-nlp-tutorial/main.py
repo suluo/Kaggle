@@ -4,7 +4,7 @@
 # File Name    : main.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-04-03 19:03:30
+# Last Modified: 2018-04-03 19:15:14
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -30,12 +30,10 @@ import train_batch as train
 logging.config.fileConfig('./conf/logging.conf',
                           disable_existing_loggers=False)
 logger = logging.getLogger(__file__)
-import spacy
-spacy_en = spacy.load("en")
-
-
-def tokenizer(text):
-    return [tok.text for tok in spacy_en.tokenizer(text)]
+# import spacy
+# spacy_en = spacy.load("en")
+# def tokenizer(text):
+#     return [tok.text for tok in spacy_en.tokenizer(text)]
 
 
 # load word embedding
@@ -69,8 +67,8 @@ def load_model_state(model, model_path):
 
 
 def main(args):
-    text_field = data.Field(sequential=True, tokenize=tokenizer, lower=True)
-    # text_field = data.Field(sequential=True, lower=True)
+    # text_field = data.Field(sequential=True, tokenize=tokenizer, lower=True)
+    text_field = data.Field(sequential=True, lower=True)
     label_field = data.Field(sequential=False)
     # label_field = data.Field(sequential=False, use_vocab=False)
     train_iter, dev_iter = data_loader.load_mr(

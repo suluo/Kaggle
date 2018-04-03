@@ -4,7 +4,7 @@
 # File Name    : data_loader_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-14
-# Last Modified: 2018-04-03 17:42:57
+# Last Modified: 2018-04-03 19:15:39
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -72,8 +72,8 @@ class MR(data.Dataset):
                 for i in tqdm(range(len(train))):
                     sentence, flag = train['review'][i], train['sentiment'][i]
                     # sentence = clean_str(sentence)
+                    sentence = sentence.split(" ")
                     if char_data is True:
-                        sentence = sentence.split(" ")
                         sentence = MR.char_data(self, sentence)
                     # print(sentence)
                     # clear string in every sentence
