@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:utf-8 -*-
 ############################################
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-04-03 18:01:29
+# Last Modified: 2018-04-03 19:24:29
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -25,12 +23,6 @@ random.seed(1)
 logging.config.fileConfig('./conf/logging.conf',
                           disable_existing_loggers=False)
 logger = logging.getLogger(__file__)
-import spacy
-spacy_en = spacy.load("en")
-
-
-def tokenizer(text):
-    return [tok.text for tok in spacy_en.tokenizer(text)]
 
 
 # load word embedding
