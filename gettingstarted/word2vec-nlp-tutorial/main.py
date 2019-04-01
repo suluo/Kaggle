@@ -4,7 +4,7 @@
 # File Name    : main.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-04-03 19:15:14
+# Last Modified: 2018-04-03 20:09:10
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -22,7 +22,8 @@ import logging.config
 torch.set_num_threads(8)
 torch.manual_seed(1)
 random.seed(1)
-from model.lstm import LSTM
+# from model.lstm import LSTM
+from model.bilstm import LSTM
 # from proprecess import data_loader
 import proprecess.data_loader_batch as data_loader
 import train_batch as train

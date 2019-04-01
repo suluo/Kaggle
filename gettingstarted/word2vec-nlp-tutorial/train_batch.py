@@ -2,7 +2,7 @@
 # File Name    : train_batch.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-04-03 19:24:29
+# Last Modified: 2018-04-04 16:39:09
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -82,7 +82,7 @@ def train_epoch(model, train_iter, is_train=True, epoch=0):
             feature, target = feature.cuda(), target.cuda()
 
         model.batch_size = batch.batch_size
-        model.hidden = model.init_hidden()
+        # model.hidden = model.init_hidden()
 
         logit = model(feature)
         loss = loss_func(logit, target)
@@ -112,7 +112,7 @@ def train_epoch(model, train_iter, is_train=True, epoch=0):
     return accuracy
 
 
-def predict(text, model, text_field, label_feild, cuda_flag):
+def predict(text, model, text_field, label_feild):
     assert isinstance(text, str)
     model.eval()
     # text = text_field.tokenize(text)
@@ -120,8 +120,10 @@ def predict(text, model, text_field, label_feild, cuda_flag):
     text = [[text_field.vocab.stoi[x] for x in text]]
     x = text_field.tensor_type(text)
     x = Variable(x, volatile=True)
-    if cuda_flag:
+    if torch.cuda.is_available():
+        model = model.cuda()
         x = x.cuda()
+    model.batch_size = 1
     print(x)
     output = model(x)
     _, predicted = torch.max(output, 1)

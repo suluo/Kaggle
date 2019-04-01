@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 ############################################
-# File Name: model_selected.py
+# File Name    : model_selected.py
 # Creation Date: 2017-08-01
-# Last Modified: 2017-08-08 14:16:03
+# Last Modified: 2018-04-16 15:44:57
 # Actor by: Suluo - sampson.suluo@gmail.com
 # Purpose:
 # scikit-learn的主要模块和基本使用:http://blog.csdn.net/u013066730/article/details/54314136
@@ -16,6 +16,7 @@ import logging.handlers
 #import traceback
 import os
 import sys
+import pandas as pd
 reload(sys)
 sys.setdefaultencoding("utf-8")
 import select_features
@@ -67,7 +68,7 @@ estimator = PCA(n_component=2) # 高维压缩到2维
 from sklearn import metrics
 from sklearn.cross_validation import cross_val_score
 from sklearn.metrics import classification_report, r2_score, mean_squared_error, mean_absolute_error
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 # 聚类
 from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import cdist
@@ -101,7 +102,7 @@ def model_quality(model, X_train, Y_train=None):
     return cross_val_score(model, X_train, Y_train, cv=5).mean()
 
 
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 def select_params(model, params, x_train, y_train):
     # pipeline 简化系统搭建流程
@@ -111,15 +112,31 @@ def select_params(model, params, x_train, y_train):
     gs = GridSearchCV(model, params, scoring='roc_auc', n_jobs=-1, cv=5, verbose=2, refit=True)
     gs.fit(x_train, y_train)
     print gs.cv_results_
-    gs.grid_scores, gs.best_params_, gs.best_score_
+    print 'best_estimator', gs.best_estimator_
+    print 'best_params', gs.best_params_
+    print 'best_score', gs.best_score_
     return gs
 
 
 def select_model(x_train, y_train):
-    print "gbdt_score:", model_quality(gbdt, x_train, y_train)
+    print "gbdt_score:", model_quality(gbc, x_train, y_train)
     print "rfc_score:", model_quality(rfc, x_train, y_train)
     print "lr_score:", model_quality(lr, x_train, y_train)
     print "svm_score:", model_quality(lsvc, x_train, y_train)
+
+
+from sklearn.externals import joblib
+def save_model(model):
+    # lr是一个LogisticRegression模型
+    joblib.dump(model, 'lr.model')
+    return lr
+
+
+def job_model(model_path):
+    if not model_path:
+        model_path = 'lr.model'
+    model = joblib.load(model_path)
+    return model
 
 
 def main(argv):
@@ -142,13 +159,10 @@ def main(argv):
     #gbdt_params = {
     #    "subsample": [0.5, 0.6, 0.65, 0.7],
     #               }
-    gs = select_params(gbdt, gbdt_params, x_train, y_train)
+    gs = select_params(gbc, gbc_params, x_train, y_train)
+    save_model(gs.best_estimator_)
     return 0
 
-def main(argv):
-    pass
 
 if __name__ == "__main__":
     main(sys.argv)
-
-

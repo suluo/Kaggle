@@ -4,7 +4,7 @@
 # File Name    : lstm.py
 # Created By   : Suluo - sampson.suluo@gmail.com
 # Creation Date: 2018-03-08
-# Last Modified: 2018-04-03 19:04:47
+# Last Modified: 2018-04-04 16:49:02
 # Descption    :
 # Version      : Python 3.6
 ############################################
@@ -13,6 +13,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+import numpy as np
 import logging
 import logging.config
 # logging.config.fileConfig('../conf/logging.conf')
@@ -29,9 +30,14 @@ class LSTM(nn.Module):
         V = args.embed_num
         D = args.embed_dim
         C = args.class_num
+        dropout = args.dropout if 'dropout' in args else 0.5
 
-        self.word_embeddings = nn.Embedding(V, D)
-        self.lstm = nn.LSTM(D, self.hidden_dim, self.num_layers)
+        # self.embed = nn.Embedding(V, D, max_norm=args.max_norm)
+        self.embedding = nn.Embedding(V, D)
+        if args.word_Embedding:
+            pretrained_weight = np.array(args.pretrained_weight)
+            self.embedding.weight.data.copy_(torch.from_numpy(pretrained_weight))
+        self.lstm = nn.LSTM(D, self.hidden_dim, dropout=dropout, num_layers=self.num_layers)
         self.hidden2label = nn.Linear(self.hidden_dim, C)
         self.hidden = self.init_hidden()
 
@@ -44,8 +50,10 @@ class LSTM(nn.Module):
         )
 
     def forward(self, sentence):
-        embeds = self.word_embeddings(sentence)
-        x = embeds.view(len(sentence), self.batch_size, -1)
+        self.hidden = self.init_hidden()
+        embeds = self.embedding(sentence)
+        # x = embeds.view(len(sentence), self.batch_size, -1)
+        x = embeds.view(len(sentence), embeds.size(1), -1)
         lstm_out, self.hidden = self.lstm(x, self.hidden)
         y = self.hidden2label(lstm_out[-1])
         log_probs = F.log_softmax(y, dim=1)
